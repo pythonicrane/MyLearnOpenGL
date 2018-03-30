@@ -1,30 +1,44 @@
-/*---------------------------------------------
-* 计算机图形学-LearnOpenGL-1.8.入门-坐标系统
-* 生成10个正方体，六个面都贴图，并旋转
-* @author ZhaoHeln 2018年3月26日12:23:26
----------------------------------------------*/
+/**------------------------------------------
+* @Author: Zhao Heln
+* @Time: 2018年3月30日21:04:57
+* @Software: Visual Studio 2017
+* @Project: 计算机图形学
+* @Problem: LearnOpenGL-1.9.入门-摄像机
+* @Description：----------------------------*
+* 使用摄像机类
+--------------------------------------------*/
 
-#include<glad/glad.h>//应放在最前面，其包含了gl头文件
-#include<GLFW/glfw3.h>
-#include"../common/shader/include/shader_s.h"
+#include <glad/glad.h>//应放在最前面，其包含了gl头文件
+#include <GLFW/glfw3.h>
+#include "../common/shader/include/shader_s.h"
 #include "../common/others/include/stb_image.h"
-#include<glm/glm.hpp>
-#include<glm/gtc/matrix_transform.hpp>
-#include<glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <camera.h>
 
-#include<iostream>
+#include <iostream>
 
 /*settings*/
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+// camera
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+
+// timing
+float deltaTime = 0.0f;	// time between current frame and last frame
+float lastFrame = 0.0f;
 
 
-/*---------------------------------------------------------------------------------
-* 窗口重绘函数
-* 当用户改变窗口的大小的时候，视口也应该被调整。
-* 我们可以对窗口注册一个回调函数(Callback Function)，它会在每次窗口大小被调整的时候被调用。
-*/
+				  /*---------------------------------------------------------------------------------
+				  * 窗口重绘函数
+				  * 当用户改变窗口的大小的时候，视口也应该被调整。
+				  * 我们可以对窗口注册一个回调函数(Callback Function)，它会在每次窗口大小被调整的时候被调用。
+				  */
 void reshapeWindow(GLFWwindow *window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -37,6 +51,44 @@ void processInput(GLFWwindow * window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera.ProcessKeyboard(FORWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera.ProcessKeyboard(BACKWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera.ProcessKeyboard(LEFT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+
+/*--------------
+* 鼠标点击响应事件
+*/
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+	lastX = xpos;
+	lastY = ypos;
+
+	camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+/*--------------
+* 鼠标滚轮响应事件
+*/
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	camera.ProcessMouseScroll(yoffset);
 }
 
 /*-----------
@@ -59,8 +111,12 @@ int main()
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, reshapeWindow);
+	glfwSetCursorPosCallback(window, mouse_callback);//响应鼠标点击函数
+	glfwSetScrollCallback(window, scroll_callback);//响应鼠标滚轮函数
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);//关闭鼠标的显示
 
-	/*GLAD初始化*/
+
+																/*GLAD初始化*/
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		std::cout << "Failed to initialize GLAD" << std::endl;
@@ -73,16 +129,16 @@ int main()
 	/*立方体顶点和纹理坐标*/
 	float vertices[] = {
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
 		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
@@ -101,16 +157,16 @@ int main()
 		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
 		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
@@ -211,12 +267,22 @@ int main()
 
 	/*打开深度测试*/
 	glEnable(GL_DEPTH_TEST);//全局变量
+							//glBindTexture(GL_TEXTURE_2D,0);//关闭纹理属性绑定
 
-	//glBindTexture(GL_TEXTURE_2D,0);//关闭纹理属性绑定
+							/*只需要设置一次的数据可以放在外面*/
+	myShader.use();
+	myShader.setInt("texture1", 0);
+	myShader.setInt("texture2", 1);
+
 
 	/*主循环*/
 	while (!glfwWindowShouldClose(window))
 	{
+		/*获得时间差*/
+		// --------------------
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 		processInput(window);
 
 
@@ -232,18 +298,16 @@ int main()
 		/*着色器数据通信*/
 		myShader.use();
 
-		glUniform1i(glGetUniformLocation(myShader.ID, "texture1"), 0); // 手动设置
-		myShader.setInt("texture2", 1); // 或者使用着色器类设置
-
 		/*矩阵变换*/
 		/*视觉变换和投影变换不需要改变*/
-		glm::mat4 view;
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));// 注意，我们将矩阵向我们要进行移动场景的反方向移动。
-		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(45.0f), float(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
-		/*三种传递数据的方式*/
-		glUniformMatrix4fv(glGetUniformLocation(myShader.ID, "view"), 1, GL_FALSE, &view[0][0]);
+		/*View Matrix*/
+		glm::mat4 view = camera.GetViewMatrix();
+		myShader.setMat4("view", view);
+
+		/*Projection Matrix*/
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glUniformMatrix4fv(glGetUniformLocation(myShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
 
 		/*画十个立方体*/
 		glBindVertexArray(VAO);
@@ -265,7 +329,7 @@ int main()
 			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);//线框模式，默认为填充模式
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-		
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

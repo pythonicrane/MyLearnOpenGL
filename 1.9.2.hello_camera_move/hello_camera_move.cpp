@@ -1,23 +1,43 @@
-/*---------------------------------------------
-* 计算机图形学-LearnOpenGL-1.8.入门-坐标系统
-* 生成10个正方体，六个面都贴图，并旋转
-* @author ZhaoHeln 2018年3月26日12:23:26
----------------------------------------------*/
+/**------------------------------------------
+* @Author: Zhao Heln
+* @Time: 2018年3月30日21:04:57
+* @Software: Visual Studio 2017
+* @Project: 计算机图形学
+* @Problem: LearnOpenGL-1.9.入门-摄像机
+* @Description：----------------------------*
+* 用键盘WASD+鼠标控制摄像机移动
+--------------------------------------------*/
 
-#include<glad/glad.h>//应放在最前面，其包含了gl头文件
-#include<GLFW/glfw3.h>
-#include"../common/shader/include/shader_s.h"
+#include <glad/glad.h>//应放在最前面，其包含了gl头文件
+#include <GLFW/glfw3.h>
+#include "../common/shader/include/shader_s.h"
 #include "../common/others/include/stb_image.h"
-#include<glm/glm.hpp>
-#include<glm/gtc/matrix_transform.hpp>
-#include<glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-#include<iostream>
+#include <iostream>
 
 /*settings*/
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+// camera
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+// timing
+float deltaTime = 0.0f;	// time between current frame and last frame
+float lastFrame = 0.0f;
+
+//鼠标控制相机使用的变量
+bool firstMouse = true;
+float yaw = -90.0f;	// 左右倾斜，沿着Y轴旋转yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float pitch = 0.0f;//上下倾斜，沿着X轴旋转
+float lastX = 800.0f / 2.0;
+float lastY = 600.0 / 2.0;
+float fov = 45.0f;//视角大小
 
 
 /*---------------------------------------------------------------------------------
@@ -37,6 +57,66 @@ void processInput(GLFWwindow * window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+	float cameraSpeed = 2.5 * deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+
+/*--------------
+* 鼠标点击响应事件
+*/
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 0.1f; // change this value to your liking
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	// make sure that when pitch is out of bounds, screen doesn't get flipped
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(front);
+}
+
+/*--------------
+* 鼠标滚轮响应事件
+*/
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	if (fov >= 1.0f && fov <= 45.0f)
+		fov -= yoffset;
+	if (fov <= 1.0f)
+		fov = 1.0f;
+	if (fov >= 45.0f)
+		fov = 45.0f;
 }
 
 /*-----------
@@ -59,6 +139,10 @@ int main()
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, reshapeWindow);
+	glfwSetCursorPosCallback(window, mouse_callback);//响应鼠标点击函数
+	glfwSetScrollCallback(window, scroll_callback);//响应鼠标滚轮函数
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);//关闭鼠标的显示
+
 
 	/*GLAD初始化*/
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -73,16 +157,16 @@ int main()
 	/*立方体顶点和纹理坐标*/
 	float vertices[] = {
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
 		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
@@ -101,16 +185,16 @@ int main()
 		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
 		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
@@ -211,12 +295,22 @@ int main()
 
 	/*打开深度测试*/
 	glEnable(GL_DEPTH_TEST);//全局变量
+							//glBindTexture(GL_TEXTURE_2D,0);//关闭纹理属性绑定
 
-	//glBindTexture(GL_TEXTURE_2D,0);//关闭纹理属性绑定
+	/*只需要设置一次的数据可以放在外面*/
+	myShader.use();
+	myShader.setInt("texture1", 0);
+	myShader.setInt("texture2", 1);
+	
 
 	/*主循环*/
 	while (!glfwWindowShouldClose(window))
 	{
+		/*获得时间差*/
+		// --------------------
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 		processInput(window);
 
 
@@ -232,18 +326,16 @@ int main()
 		/*着色器数据通信*/
 		myShader.use();
 
-		glUniform1i(glGetUniformLocation(myShader.ID, "texture1"), 0); // 手动设置
-		myShader.setInt("texture2", 1); // 或者使用着色器类设置
-
 		/*矩阵变换*/
 		/*视觉变换和投影变换不需要改变*/
-		glm::mat4 view;
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));// 注意，我们将矩阵向我们要进行移动场景的反方向移动。
-		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(45.0f), float(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
-		/*三种传递数据的方式*/
-		glUniformMatrix4fv(glGetUniformLocation(myShader.ID, "view"), 1, GL_FALSE, &view[0][0]);
+		/*View Matrix*/
+		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		myShader.setMat4("view", view);
+
+		/*Projection Matrix*/
+		glm::mat4 projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glUniformMatrix4fv(glGetUniformLocation(myShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
 
 		/*画十个立方体*/
 		glBindVertexArray(VAO);
@@ -265,7 +357,7 @@ int main()
 			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);//线框模式，默认为填充模式
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-		
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

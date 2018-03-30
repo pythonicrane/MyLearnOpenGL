@@ -1,24 +1,26 @@
-/*---------------------------------------------
-* 计算机图形学-LearnOpenGL-1.8.入门-坐标系统
-* 生成10个正方体，六个面都贴图，并旋转
-* @author ZhaoHeln 2018年3月26日12:23:26
----------------------------------------------*/
+/**------------------------------------------
+* @Author: Zhao Heln
+* @Time: 2018年3月27日20:20:33
+* @Software: Visual Studio 2017
+* @Project: 计算机图形学
+* @Problem: LearnOpenGL-1.9.入门-摄像机
+* @Description：----------------------------*
+* 模拟摄像机旋转
+--------------------------------------------*/
 
-#include<glad/glad.h>//应放在最前面，其包含了gl头文件
-#include<GLFW/glfw3.h>
-#include"../common/shader/include/shader_s.h"
+#include <glad/glad.h>//应放在最前面，其包含了gl头文件
+#include <GLFW/glfw3.h>
+#include "../common/shader/include/shader_s.h"
 #include "../common/others/include/stb_image.h"
-#include<glm/glm.hpp>
-#include<glm/gtc/matrix_transform.hpp>
-#include<glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-#include<iostream>
+#include <iostream>
 
 /*settings*/
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-
-
 
 /*---------------------------------------------------------------------------------
 * 窗口重绘函数
@@ -73,16 +75,16 @@ int main()
 	/*立方体顶点和纹理坐标*/
 	float vertices[] = {
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
 		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
@@ -101,16 +103,16 @@ int main()
 		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
 		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
 		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
@@ -211,8 +213,16 @@ int main()
 
 	/*打开深度测试*/
 	glEnable(GL_DEPTH_TEST);//全局变量
-
 	//glBindTexture(GL_TEXTURE_2D,0);//关闭纹理属性绑定
+
+	/*只需要设置一次的数据可以放在外面*/
+	myShader.use();
+	myShader.setInt("texture1", 0);
+	myShader.setInt("texture2", 1);
+	/*Projection Matrix*/
+	glm::mat4 projection;
+	projection = glm::perspective(glm::radians(45.0f), float(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
+	glUniformMatrix4fv(glGetUniformLocation(myShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 	/*主循环*/
 	while (!glfwWindowShouldClose(window))
@@ -232,18 +242,16 @@ int main()
 		/*着色器数据通信*/
 		myShader.use();
 
-		glUniform1i(glGetUniformLocation(myShader.ID, "texture1"), 0); // 手动设置
-		myShader.setInt("texture2", 1); // 或者使用着色器类设置
-
 		/*矩阵变换*/
 		/*视觉变换和投影变换不需要改变*/
+		/*View Matrix*/
 		glm::mat4 view;
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));// 注意，我们将矩阵向我们要进行移动场景的反方向移动。
-		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(45.0f), float(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
-		/*三种传递数据的方式*/
-		glUniformMatrix4fv(glGetUniformLocation(myShader.ID, "view"), 1, GL_FALSE, &view[0][0]);
-		glUniformMatrix4fv(glGetUniformLocation(myShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		float radius = 20.0f;
+		float camX = sin(glfwGetTime()) * radius;
+		float camZ = cos(glfwGetTime()) * radius;
+		view = glm::lookAt(glm::vec3(camX, 0.0f, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		myShader.setMat4("view", view);
+		
 
 		/*画十个立方体*/
 		glBindVertexArray(VAO);
@@ -265,7 +273,7 @@ int main()
 			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);//线框模式，默认为填充模式
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-		
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
