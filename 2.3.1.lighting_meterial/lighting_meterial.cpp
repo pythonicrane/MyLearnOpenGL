@@ -1,11 +1,11 @@
 /**------------------------------------------
 * @Author: Zhao Heln
-* @Time: 2018年4月8日22:17:08
+* @Time: 2018年4月10日22:01:43
 * @Software: Visual Studio 2017
 * @Project: 计算机图形学
-* @Problem: LearnOpenGL-2.2.光照-镜面反射
+* @Problem: LearnOpenGL-2.3.光照-材质
 * @Description：----------------------------*
-* 显示两个cube，一个是光源，一个带有镜面反射
+* 通过材质结构体控制物体光照
 --------------------------------------------*/
 
 #include <glad/glad.h>//应放在最前面，其包含了gl头文件
@@ -36,11 +36,6 @@ float lastFrame = 0.0f;
 // lighting
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
-//全局光照强度系数
-float ambientStrength = 0.1;
-
-//镜面反射强度系数
-float specularStrength = 0.5;
 
 
 /*---------------------------------------------------------------------------------
@@ -230,15 +225,20 @@ int main()
 		/**Linghting rendering**/
 		/*着色器数据通信*/
 		lightingShader.use();
-		lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 		lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		/*光源移动*/
 		lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
 		lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
 		lightingShader.setVec3("lightPos", lightPos);
-		lightingShader.setFloat("ambienStrength", ambientStrength);
-		lightingShader.setFloat("specularStrength", specularStrength);
 		lightingShader.setVec3("viewPos", camera.Position);
+		/*物体材质和光源材质属性设置*/
+		lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+		lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+		lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+		lightingShader.setFloat("material.shininess", 32.0f);
+		lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+		lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // 将光照调暗了一些以搭配场景
+		lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 		/*MVP矩阵变换*/
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.GetViewMatrix();

@@ -1,11 +1,11 @@
 /**------------------------------------------
 * @Author: Zhao Heln
-* @Time: 2018年4月8日22:17:08
+* @Time: 2018年4月10日22:31:11
 * @Software: Visual Studio 2017
 * @Project: 计算机图形学
-* @Problem: LearnOpenGL-2.2.光照-镜面反射
+* @Problem: LearnOpenGL-2.3.光照-材质
 * @Description：----------------------------*
-* 显示两个cube，一个是光源，一个带有镜面反射
+* 改变光照颜色,物体自转，光源公转
 --------------------------------------------*/
 
 #include <glad/glad.h>//应放在最前面，其包含了gl头文件
@@ -34,13 +34,8 @@ float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
 // lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(2.0f, 0.0f, 0.0f);
 
-//全局光照强度系数
-float ambientStrength = 0.1;
-
-//镜面反射强度系数
-float specularStrength = 0.5;
 
 
 /*---------------------------------------------------------------------------------
@@ -208,11 +203,11 @@ int main()
 
 	/*打开深度测试*/
 	glEnable(GL_DEPTH_TEST);//全局变量
-							//glBindTexture(GL_TEXTURE_2D,0);//关闭纹理属性绑定
+	//glBindTexture(GL_TEXTURE_2D,0);//关闭纹理属性绑定
 
 
 
-							/*主循环*/
+	/*主循环*/
 	while (!glfwWindowShouldClose(window))
 	{
 		/*获得时间差*/
@@ -230,19 +225,34 @@ int main()
 		/**Linghting rendering**/
 		/*着色器数据通信*/
 		lightingShader.use();
-		lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 		lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		/*光源移动*/
-		lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
-		lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
-		lightingShader.setVec3("lightPos", lightPos);
-		lightingShader.setFloat("ambienStrength", ambientStrength);
-		lightingShader.setFloat("specularStrength", specularStrength);
+		lightPos.x = cos(glfwGetTime()) * 2.0f;
+		lightPos.z = sin(glfwGetTime()) * 2.0f;
+		lightingShader.setVec3("light.position", lightPos);
 		lightingShader.setVec3("viewPos", camera.Position);
+		/*物体片段着色器物体材质和光源材质属性设置*/
+		glm::vec3 lightColor;
+		lightColor.x = sin(glfwGetTime() * 2.0f);
+		lightColor.y = sin(glfwGetTime() * 0.7f);
+		lightColor.z = sin(glfwGetTime() * 1.3f);
+		glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f); // 降低影响
+		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // 很低的影响
+	
+		lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+		lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+		lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+		lightingShader.setFloat("material.shininess", 32.0f);
+		lightingShader.setVec3("light.ambient", ambientColor);
+		lightingShader.setVec3("light.diffuse", diffuseColor);
+		lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+		
 		/*MVP矩阵变换*/
+
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 model;
+		model = glm::rotate(model,glm::radians(20.0f*(float)glfwGetTime()),glm::vec3(0.0f,0.0f,1.0f));
 		lightingShader.setMat4("projection", projection);
 		lightingShader.setMat4("view", view);
 		lightingShader.setMat4("model", model);
@@ -253,6 +263,10 @@ int main()
 		/**Lamping Rendering**/
 		/*着色器数据通信*/
 		lampShader.use();
+		/*灯泡片段着色器光源材质属性设置*/
+		lampShader.setVec3("light.ambient", ambientColor);
+		lampShader.setVec3("light.diffuse", diffuseColor);
+		lampShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 		/*MVP矩阵变换*/
 		model = glm::mat4();
 		model = glm::translate(model, lightPos);
